@@ -411,9 +411,9 @@ class BaseResult(metaclass=ABCMeta):
         ----------
         intensities : npt.NDArray[np.floating]
             The real field intensity to sum the intensity of. Dimensions (L, M, len(z_vals)).
-        bounds : tuple[float | int, float | int]
+        bounds : tuple[float | int, float | int], optional
             A subset of z-values (min, max) over which to sum the intensity.
-        z_vals : npt.NDArray[np.floating]
+        z_vals : npt.NDArray[np.floating], optional
             The z-coordinates corresponding to the field values.
 
         Returns
@@ -422,17 +422,24 @@ class BaseResult(metaclass=ABCMeta):
             The summed intensity over the specified bounds. Dimensions are (L, M),
             unless L or M are singular, in which case the dimension is flattened.
         """
-        if bounds is not None or z_vals is not None:
-            if bounds is None or z_vals is None:
-                raise ValueError(
-                    "If one of `bounds` or `z_vals` is provided, both must be provided."
-                )
+        if bounds is not None:
+            if z_vals is None:
+                raise ValueError("`z_vals` information required to apply bounds.")
             # Get the subset
             assert bounds is not None
             bnds = sorted(bounds)
             idxs = (z_vals >= bnds[0]) & (z_vals <= bnds[1])
-            # Calculate the intensity
-            intensities = intensities[idxs]
+            # Calculate the intensity, apply to last dimension.
+            if intensities.ndim == 2:
+                intensities = intensities[:, idxs]
+            elif intensities.ndim == 3:
+                intensities = intensities[:, :, idxs]
+            elif intensities.ndim == 1:
+                intensities = intensities[idxs]
+            else:
+                raise ValueError(
+                    f"Intensity array has too many dimensions to apply bounds. Is: {intensities.ndim}"
+                )
             summed_intensity = np.sum(intensities, axis=-1)  # Sum over z-values
             return summed_intensity
         else:
@@ -442,7 +449,7 @@ class BaseResult(metaclass=ABCMeta):
     def summed_intensity(
         self,
         z_vals: list[int | float] | npt.NDArray[np.floating],
-        bounds: tuple[float | int, float | int],
+        bounds: tuple[float | int, float | int] | None = None,
     ) -> npt.NDArray[np.floating]:
         r"""
         Calculate the summed electric field intensity at given z-coordinates.
@@ -457,7 +464,7 @@ class BaseResult(metaclass=ABCMeta):
         ----------
         z_vals : list[int | float] | npt.NDArray[np.floating]
             The z-coordinates at which to calculate the electric field in angstroms (Å).
-        bounds : tuple[float | int, float | int]
+        bounds : tuple[float | int, float | int], optional
             A subset of z-coordinates (min, max) over which to sum the intensity.
 
         Returns
