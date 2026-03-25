@@ -188,6 +188,13 @@ patch_tags = ["fix", "perf"]
 parse_squash_commits = true
 ignore_merge_commits = true
 
+[tool.semantic_release.publish]
+dist_glob_patterns = [
+    "dist/*",
+    "dist/gui/xefi-*-gui-*/*",
+    "dist/docs/*"
+]
+
 
 #######################################################
 #############  Sphinx Doc configurations  #############
